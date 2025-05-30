@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentHub Registry Schema",
+  "description": "JSON Schema for AgentHub agent entries",
+  "type": "object",
+  "required": ["id", "name", "version", "capabilities", "pricing", "metadata", "federation"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the agent"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Display name of the agent"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the agent"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "List of agent capabilities"
+    },
+    "pricing": {
+      "type": "object",
+      "required": ["model", "rates"],
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": ["usage", "subscription"],
+          "description": "Pricing model type"
+        },
+        "rates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["tier", "price"],
+            "properties": {
+              "tier": {
+                "type": "string",
+                "description": "Name of the pricing tier"
+              },
+              "price": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Price for this tier"
+              },
+              "limits": {
+                "type": "object",
+                "description": "Optional usage limits for this tier"
+              }
+            }
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["description", "provider"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000,
+          "description": "Detailed description of the agent"
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the agent provider"
+        },
+        "documentation": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to agent documentation"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Example usage snippets"
+        }
+      }
+    },
+    "federation": {
+      "type": "object",
+      "required": ["node"],
+      "properties": {
+        "node": {
+          "type": "string",
+          "format": "uri",
+          "description": "Primary node URL"
+        },
+        "replicas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "List of replica node URLs"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
