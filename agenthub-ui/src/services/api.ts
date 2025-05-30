@@ -24,19 +24,32 @@ export class ApiService {
     options: RequestInit,
     retries = this.maxRetries
   ): Promise<Response> {
-    try {
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        const errorMessage = await response.text();
-        throw new Error(`API Error: ${errorMessage}`);
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, options);
+        if (!response || !response.ok) {
+          const errorMessage = await response.text();
+          throw new Error(`API Error: ${errorMessage}`);
+        }
+        return response;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('API Error: Network request failed');
+        
+        // If we have retries left, wait before trying again
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        
+        // No more retries, throw the last error
+        throw lastError;
       }
-      return response;
-    } catch (error) {
-      if (retries > 0) {
-        return this.fetchWithRetry(url, options, retries - 1);
-      }
-      throw error;
     }
+
+    // This should never be reached due to the throw in the loop
+    throw lastError || new Error('API Error: Network request failed');
   }
 
   async submitTask(task: string, mode: Mode): Promise<TaskResponse> {
@@ -50,6 +63,7 @@ export class ApiService {
         body: JSON.stringify({ task, mode }),
       }
     );
+
     return response.json();
   }
 
@@ -64,6 +78,7 @@ export class ApiService {
         body: JSON.stringify({ mode }),
       }
     );
+
     return response.json();
   }
 }

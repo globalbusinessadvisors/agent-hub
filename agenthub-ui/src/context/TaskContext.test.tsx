@@ -18,9 +18,9 @@ const TestConsumer = () => {
     <div>
       <div data-testid="mode">{currentMode}</div>
       <div data-testid="loading">{isLoading.toString()}</div>
-      <div data-testid="error">{error}</div>
+      <div data-testid="error">{error?.toString() || ''}</div>
       <div data-testid="response">{response}</div>
-      <button onClick={() => submitTask('test task')}>Submit</button>
+      <button onClick={() => submitTask('test task', currentMode)}>Submit</button>
       <button onClick={() => switchMode('code')}>Switch Mode</button>
     </div>
   );
@@ -40,9 +40,8 @@ describe('TaskContext', () => {
     expect(screen.getByTestId('response')).toHaveTextContent('');
   });
 
-  it('handles task submission', async () => {
-    // Mock successful API response
-    vi.spyOn(global, 'fetch').mockResolvedValue({
+  it('handles task submission with current mode', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ message: 'Success' })
     } as Response);
@@ -54,6 +53,12 @@ describe('TaskContext', () => {
     expect(screen.getByTestId('loading')).toHaveTextContent('true');
 
     await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: JSON.stringify({ task: 'test task', mode: 'ask' })
+        })
+      );
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
       expect(screen.getByTestId('response')).toHaveTextContent('Response received');
     });
@@ -78,6 +83,31 @@ describe('TaskContext', () => {
     await waitFor(() => {
       expect(screen.getByTestId('error')).toHaveTextContent('API Error');
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
+  });
+
+  it('passes current mode to API when submitting task', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ message: 'Success' })
+    } as Response);
+
+    render(<TestConsumer />, { wrapper });
+
+    // Switch mode first
+    fireEvent.click(screen.getByText('Switch Mode'));
+    expect(screen.getByTestId('mode')).toHaveTextContent('code');
+
+    // Submit task
+    fireEvent.click(screen.getByText('Submit'));
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: JSON.stringify({ task: 'test task', mode: 'code' })
+        })
+      );
     });
   });
 });

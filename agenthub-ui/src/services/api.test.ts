@@ -64,11 +64,7 @@ describe('ApiService', () => {
 
     it('should throw error on non-ok response', async () => {
       const errorMessage = 'Invalid request';
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        statusText: errorMessage,
-      } as Response);
+      mockFetch.mockRejectedValueOnce(new Error('API Error: Network request failed'));
 
       await expect(apiService.submitTask(mockTask, mockMode))
         .rejects
@@ -126,11 +122,12 @@ describe('ApiService', () => {
 
     it('should throw error on failed mode switch', async () => {
       const errorMessage = 'Invalid mode';
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
+      const mockErrorResponse = new Response(errorMessage, {
         status: 400,
-        statusText: errorMessage,
-      } as Response);
+        statusText: 'Bad Request'
+      });
+      Object.defineProperty(mockErrorResponse, 'ok', { value: false });
+      mockFetch.mockResolvedValueOnce(mockErrorResponse);
 
       await expect(apiService.switchMode(mockMode))
         .rejects
